@@ -1,8 +1,41 @@
 import { buildBot } from "./bot.js";
 import { setDefaultCommands } from "./toolkit/index.js";
 import { deliveryTick } from "./lib/scheduler.js";
-import { getDomainStore, getAdminChatId } from "./lib/storage.js";
+import { getDomainStore, getAdminChatId, getAllUserIds, getUserProfile, anonymizeUser } from "./lib/storage.js";
 import { generateAdminReport, sendAdminReport } from "./handlers/admin.js";
+import { now } from "./lib/clock.js";
+
+/**
+ * Check for inactive users and anonymize them.
+ * Runs every 24 hours. Anonymizes users whose last update was >90 days ago.
+ */
+async function runAnonymization(kv: ReturnType<typeof getDomainStore>): Promise<void> {
+  try {
+    const allIds = await getAllUserIds(kv);
+    const cutoff = now().getTime() - 90 * 24 * 60 * 60 * 1000;
+    let anonymized = 0;
+
+    for (const id of allIds) {
+      const profile = await getUserProfile(kv, id);
+      if (!profile) continue;
+
+      // Only anonymize unsubscribed or paused users whose last update is >90 days
+      if (profile.subscription_status === "active") continue;
+
+      const updatedAt = new Date(profile.updated_at).getTime();
+      if (updatedAt < cutoff) {
+        await anonymizeUser(kv, id);
+        anonymized++;
+      }
+    }
+
+    if (anonymized > 0) {
+      console.log(`[anonymize] Anonymized ${anonymized} inactive user(s)`);
+    }
+  } catch (err) {
+    console.error("[anonymize] Error during anonymization:", err);
+  }
+}
 
 async function main() {
   const token = process.env.BOT_TOKEN;
@@ -44,6 +77,12 @@ async function main() {
   }, DAILY_REPORT_MS);
   reportTimer.unref();
 
+  // Daily user anonymization job (privacy — anonymize inactive users after 90 days)
+  const anonymizeTimer = setInterval(async () => {
+    await runAnonymization(kv);
+  }, DAILY_REPORT_MS);
+  anonymizeTimer.unref();
+
   // Send initial admin report at startup (and log startup event)
   const adminChatId = await getAdminChatId(kv);
   if (adminChatId) {
@@ -53,6 +92,9 @@ async function main() {
       // Non-fatal
     }
   }
+
+  // Run anonymization check at startup too
+  await runAnonymization(kv);
 
   bot.start();
 }

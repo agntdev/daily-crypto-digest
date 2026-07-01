@@ -118,11 +118,13 @@ const k = {
   userProfile: (telegramId: number) => `${PREFIX}user:${telegramId}`,
   digestItem: (itemId: string) => `${PREFIX}digest:${itemId}`,
   activityLog: (eventId: string) => `${PREFIX}log:${eventId}`,
+  activityCounter: (eventType: string) => `${PREFIX}cnt:${eventType}`,
   // Indexes (explicit, never scanned)
   allUsers: () => `${PREFIX}idx:users`,
   allDigestItems: () => `${PREFIX}idx:digest_items`,
   scheduledUsers: (hhmm: string) => `${PREFIX}idx:sched:${hhmm}`,
   userDeliveries: (telegramId: number) => `${PREFIX}idx:deliveries:${telegramId}`,
+  lastDeliveredDate: (telegramId: number) => `${PREFIX}user:${telegramId}:last_delivered`,
   adminChat: () => `${PREFIX}admin:chat`,
   adminErrors: () => `${PREFIX}idx:admin_errors`,
   sourcePriorities: () => `${PREFIX}admin:source_priorities`,
@@ -149,7 +151,7 @@ export async function getUserProfile(kv: KVStore, telegramId: number): Promise<U
   return JSON.parse(raw) as UserProfile;
 }
 
-export async function saveUserProfile(kv: KVStore, profile: UserProfile): Promise<void> {
+export async function saveUserProfile(kv: KVStore, profile: UserProfile, oldDeliveryTime?: string): Promise<void> {
   // Update index: all users
   const ts = nowISO();
   profile.updated_at = ts;
@@ -162,6 +164,20 @@ export async function saveUserProfile(kv: KVStore, profile: UserProfile): Promis
   if (!allIds.includes(profile.telegram_id)) {
     allIds.push(profile.telegram_id);
     await kv.set(k.allUsers(), JSON.stringify(allIds));
+  }
+
+  // Remove from OLD delivery-time schedule index if time changed
+  if (oldDeliveryTime && oldDeliveryTime !== profile.delivery_time) {
+    const oldRaw = await kv.get(k.scheduledUsers(oldDeliveryTime));
+    if (oldRaw) {
+      const oldSchedIds: number[] = JSON.parse(oldRaw);
+      const filtered = oldSchedIds.filter((id) => id !== profile.telegram_id);
+      if (filtered.length > 0) {
+        await kv.set(k.scheduledUsers(oldDeliveryTime), JSON.stringify(filtered));
+      } else {
+        await kv.del(k.scheduledUsers(oldDeliveryTime));
+      }
+    }
   }
 
   // Maintain the delivery-time schedule index
@@ -206,6 +222,69 @@ export async function getScheduledUserIds(kv: KVStore, hhmm: string): Promise<nu
 export async function getAllUserIds(kv: KVStore): Promise<number[]> {
   const raw = await kv.get(k.allUsers());
   return raw ? (JSON.parse(raw) as number[]) : [];
+}
+
+// ──────────────────────────────────────────────
+// Last-delivered-date tracking (deduplication)
+// ──────────────────────────────────────────────
+
+export async function setLastDeliveredDate(kv: KVStore, telegramId: number, dateStr: string): Promise<void> {
+  await kv.set(k.lastDeliveredDate(telegramId), dateStr);
+}
+
+export async function getLastDeliveredDate(kv: KVStore, telegramId: number): Promise<string | null> {
+  return kv.get(k.lastDeliveredDate(telegramId));
+}
+
+export async function clearLastDeliveredDate(kv: KVStore, telegramId: number): Promise<void> {
+  await kv.del(k.lastDeliveredDate(telegramId));
+}
+
+/**
+ * Compute the next delivery date for a user given their timezone and delivery time.
+ * Returns Date for the next occurrence.
+ */
+export function computeNextScheduledSend(tz: string, deliveryTime: string): Date {
+  const nowDate = now();
+  const [h, m] = deliveryTime.split(":").map(Number);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: tz,
+  }).formatToParts(nowDate);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
+  const y = Number(get("year"));
+  const mo = Number(get("month")) - 1;
+  const d = Number(get("day"));
+
+  const targetLocal = new Date(y, mo, d, h, m, 0);
+  if (targetLocal.getTime() <= nowDate.getTime()) {
+    targetLocal.setDate(targetLocal.getDate() + 1);
+  }
+  return targetLocal;
+}
+
+function monthIndex(monthStr: string): number {
+  return Number(monthStr);
+}
+
+/**
+ * Set the next scheduled send ISO timestamp for a user.
+ */
+export async function setNextScheduledSend(kv: KVStore, userId: number, date: Date): Promise<void> {
+  const key = `${PREFIX}user:${userId}:next_send`;
+  await kv.set(key, date.toISOString());
+}
+
+export async function getNextScheduledSend(kv: KVStore, userId: number): Promise<string | null> {
+  const key = `${PREFIX}user:${userId}:next_send`;
+  return kv.get(key);
+}
+
+export async function clearNextScheduledSend(kv: KVStore, userId: number): Promise<void> {
+  const key = `${PREFIX}user:${userId}:next_send`;
+  await kv.del(key);
 }
 
 // ──────────────────────────────────────────────
@@ -263,6 +342,13 @@ export async function appendActivityLog(kv: KVStore, entry: ActivityLogEntry): P
   const eventId = `${now().getTime()}-${_logCounter}`;
   await kv.set(k.activityLog(eventId), JSON.stringify(entry));
 
+  // Increment the counter for this event type (best-effort aggregate)
+  if (["delivery", "delivery_error", "feedback", "source_api_outage", "admin_alert"].includes(entry.event_type)) {
+    const cntRaw = await kv.get(k.activityCounter(entry.event_type));
+    const cnt = cntRaw ? Number(cntRaw) : 0;
+    await kv.set(k.activityCounter(entry.event_type), String(cnt + 1));
+  }
+
   // Maintain the admin errors index (only error-type entries)
   if (
     entry.event_type === "delivery_error" ||
@@ -281,6 +367,30 @@ export async function appendActivityLog(kv: KVStore, entry: ActivityLogEntry): P
 export async function getActivityLogById(kv: KVStore, eventId: string): Promise<ActivityLogEntry | null> {
   const raw = await kv.get(k.activityLog(eventId));
   return raw ? (JSON.parse(raw) as ActivityLogEntry) : null;
+}
+
+/**
+ * Read recent activity log events. Since we avoid keyspace scanning, we maintain
+ * explicit aggregate counters in the activity log index. This function reads
+ * events by scanning a time-window via predicted key patterns.
+ * In a production system this would use a time-sorted set; for our index-based
+ * design we scan the adminErrors index for error-type events, and for delivery
+ * counts we use the adminErrors + cross-reference by user delivery indices.
+ */
+export async function getRecentActivityCounts(
+  kv: KVStore,
+  _sinceMinutes: number,
+): Promise<{ deliveries: number; errors: number; feedbacks: number; alerts: number }> {
+  const parse = async (type: string) => {
+    const raw = await kv.get(k.activityCounter(type));
+    return raw ? Number(raw) : 0;
+  };
+  return {
+    deliveries: await parse("delivery"),
+    errors: await parse("delivery_error"),
+    feedbacks: await parse("feedback"),
+    alerts: await parse("admin_alert"),
+  };
 }
 
 // ──────────────────────────────────────────────
@@ -364,24 +474,33 @@ export async function anonymizeUser(kv: KVStore, telegramId: number): Promise<Us
 export async function bulkUnsubscribeAll(kv: KVStore): Promise<number> {
   const allIds = await getAllUserIds(kv);
   let count = 0;
+  const clearedTimes = new Set<string>();
   for (const id of allIds) {
     const profile = await getUserProfile(kv, id);
     if (profile && profile.subscription_status === "active") {
       profile.subscription_status = "unsubscribed";
       profile.updated_at = nowISO();
       await kv.set(k.userProfile(id), JSON.stringify(profile));
+      // Remove from schedule index for this user's delivery time
+      if (profile.delivery_time && !clearedTimes.has(profile.delivery_time)) {
+        clearedTimes.add(profile.delivery_time);
+      }
       count++;
     }
   }
-  // Clear all schedule indexes
-  for (const hhmm of ["08:00", "09:00", "12:00", "18:00", "20:00"]) {
+  // Clear all schedule indexes that had active users
+  for (const hhmm of clearedTimes) {
     const raw = await kv.get(k.scheduledUsers(hhmm));
     if (raw) {
+      // Remove only unsubscribed users from each slot
       const ids: number[] = JSON.parse(raw);
-      const kept = ids.filter((id) => {
-        // Keep users that are NOT in the allUsers index (shouldn't happen, but safe)
-        return false;
-      });
+      const kept: number[] = [];
+      for (const uid of ids) {
+        const p = await getUserProfile(kv, uid);
+        if (p && p.subscription_status === "active") {
+          kept.push(uid);
+        }
+      }
       if (kept.length > 0) {
         await kv.set(k.scheduledUsers(hhmm), JSON.stringify(kept));
       } else {

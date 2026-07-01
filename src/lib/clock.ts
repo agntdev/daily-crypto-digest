@@ -48,6 +48,17 @@ export function currentWeekday(date: Date, tz: string): number {
   return days.indexOf(dayName);
 }
 
+/** Format a Date as YYYY-MM-DD string in a given timezone (or UTC by default). */
+export function formatYYYYMMDD(date: Date, tz = "UTC"): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: tz,
+  };
+  return new Intl.DateTimeFormat("en-CA", opts).format(date); // en-CA → YYYY-MM-DD
+}
+
 /** Get timezone offset description for display. */
 export function describeTimezone(tz: string): string {
   try {
