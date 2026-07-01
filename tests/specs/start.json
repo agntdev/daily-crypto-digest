@@ -1,13 +1,102 @@
 [
   {
-    "name": "/start replies with the welcome + main menu",
+    "name": "/start for new user begins onboarding with welcome message",
     "steps": [
       {
         "send": { "text": "/start" },
         "expect": [
           {
             "method": "sendMessage",
-            "payload": { "text": "👋 Welcome! Tap a button below to get started." }
+            "payload": {
+              "text": "Hi Test, welcome to Crypto Digest.\n\nI'll send you 1–3 curated crypto news summaries each day. First, let's set your delivery time."
+            }
+          },
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "At what local time should I send your daily digest? Tap a preset or type your own time (e.g., /time 08:30)."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/start for returning user shows menu with delivery time",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Hi Test, welcome to Crypto Digest.\n\nI'll send you 1–3 curated crypto news summaries each day. First, let's set your delivery time."
+            }
+          }
+        ]
+      },
+      {
+        "send": { "text": "/start" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Welcome back, Test. Your digest is scheduled for 09:00 (UTC).\n\nWhat would you like to do?"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/help explains the bot in plain language",
+    "steps": [
+      {
+        "send": { "text": "/help" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "ℹ️ Tap /start to open the menu, then pick what you want from the buttons.\n\nEverything in this bot is reachable by tapping — you don't need to remember any commands."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Help menu button shows same help text",
+    "steps": [
+      {
+        "send": { "callback": "menu:help" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "ℹ️ Tap /start to open the menu, then pick what you want from the buttons.\n\nEverything in this bot is reachable by tapping — you don't need to remember any commands."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:main shows main menu for returning user",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      },
+      {
+        "send": { "callback": "menu:main" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "Welcome back, Test. Your digest is scheduled for 09:00 (UTC).\n\nWhat would you like to do?"
+            }
           }
         ]
       }

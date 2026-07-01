@@ -1,0 +1,118 @@
+[
+  {
+    "name": "/time without profile shows message",
+    "steps": [
+      {
+        "send": { "text": "/time" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Set up your subscription first. Tap /start to begin."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/time shows preset keyboard for active user",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/time" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "At what local time should I send your daily digest? Tap a preset or type your own time (e.g., /time 08:30)."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/time HH:MM sets custom delivery time",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/time 09:30" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Your digest is now scheduled for 09:30 (UTC).\n\nI'll send you 1–3 curated summaries at that time each day."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/time with invalid format shows error",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/time 25:00" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "That doesn't look right. Use HH:MM format (e.g., /time 09:30). Hours: 0–23, minutes: 0–59."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:time opens time picker",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "menu:time" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "At what local time should I send your daily digest? Tap a preset or type your own time (e.g., /time 08:30)."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "time_preset sets delivery time",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "time_preset:08:00" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "Your digest is now scheduled for 08:00 (UTC).\n\nI'll send you 1–3 curated summaries at that time each day."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

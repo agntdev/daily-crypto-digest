@@ -1,0 +1,102 @@
+[
+  {
+    "name": "/stop for a user without a subscription",
+    "steps": [
+      {
+        "send": { "text": "/stop" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "You don't have an active subscription. Tap /start to set one up."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/stop unsubscribes an active user",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/stop" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Your daily digest is now paused. You won't receive any more summaries until you restart with /start.\n\nYour preferences have been saved — tap /start anytime to resume."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/stop when already unsubscribed shows paused message",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/stop" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/stop" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Your digest is already paused. Tap /start to resume."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:unsubscribe button stops digest",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "menu:unsubscribe" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "Your daily digest is now paused. You won't receive any more summaries until you restart with /start.\n\nYour preferences have been saved — tap /start anytime to resume."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe callback from digest stops immediately",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "unsubscribe" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Your daily digest is now paused. You won't receive any more summaries until you restart with /start.\n\nYour preferences have been saved — tap /start anytime to resume."
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
