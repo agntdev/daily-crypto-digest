@@ -1,0 +1,61 @@
+[
+  {
+    "name": "/stop shows not subscribed when user has no profile",
+    "steps": [
+      {
+        "send": { "text": "/stop" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "You're not currently subscribed to the daily digest. Tap /start to get started!" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe button shows not subscribed when user has no profile",
+    "steps": [
+      {
+        "send": { "callback": "unsubscribe" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "You're not currently subscribed to the daily digest. Tap /start to get started!" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe:no keeps subscription",
+    "steps": [
+      {
+        "send": { "callback": "unsubscribe:no" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "✅ Subscription unchanged — you'll keep receiving your daily digests." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe:yes confirms unsubscribed for non-subscriber",
+    "steps": [
+      {
+        "send": { "callback": "unsubscribe:yes" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "✅ You've been unsubscribed from the daily digest. No more messages will be sent.\n\nTap /start if you ever want to come back." }
+          }
+        ]
+      }
+    ]
+  }
+]

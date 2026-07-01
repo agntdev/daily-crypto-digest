@@ -1,0 +1,44 @@
+[
+  {
+    "name": "/admin shows the admin panel",
+    "steps": [
+      {
+        "send": { "text": "/admin" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "parse_mode": "HTML" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/admin_setup configures the admin chat",
+    "steps": [
+      {
+        "send": { "text": "/admin_setup" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "✅ This chat is now set as the admin channel. Daily reports will be sent here." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/admin_users shows user stats",
+    "steps": [
+      {
+        "send": { "text": "/admin_users" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "parse_mode": "HTML" }
+          }
+        ]
+      }
+    ]
+  }
+]

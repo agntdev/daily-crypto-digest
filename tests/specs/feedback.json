@@ -1,0 +1,32 @@
+[
+  {
+    "name": "feedback button opens feedback form",
+    "steps": [
+      {
+        "send": { "callback": "feedback" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "We'd love to hear from you! Send a message with your thoughts, suggestions, or bug reports." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "feedback:cancel returns to menu with cancelled message",
+    "steps": [
+      {
+        "send": { "callback": "feedback:cancel" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Feedback cancelled." }
+          }
+        ]
+      }
+    ]
+  }
+]

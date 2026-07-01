@@ -1,0 +1,31 @@
+[
+  {
+    "name": "/sample shows sample digest for any user",
+    "steps": [
+      {
+        "send": { "text": "/sample" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "📬 Here's a sample of what your daily digest looks like:" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "sample button shows sample digest",
+    "steps": [
+      {
+        "send": { "callback": "sample" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "📬 Here's a sample of what your daily digest looks like:" }
+          }
+        ]
+      }
+    ]
+  }
+]

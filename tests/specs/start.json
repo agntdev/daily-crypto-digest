@@ -1,13 +1,55 @@
 [
   {
-    "name": "/start replies with the welcome + main menu",
+    "name": "/start shows welcome message with setup button for new users",
     "steps": [
       {
         "send": { "text": "/start" },
         "expect": [
           {
             "method": "sendMessage",
-            "payload": { "text": "👋 Welcome! Tap a button below to get started." }
+            "payload": { "text": "👋 Welcome! This bot sends you 1–3 curated crypto news summaries each day at your chosen time." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "onboarding:start shows timezone picker",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboarding:start" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "First, let's set your timezone. Pick the one closest to you:" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "timezone selection proceeds to delivery time",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboarding:start" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "tz:UTC" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Great! Now pick what time you'd like your daily digest to arrive:" }
           }
         ]
       }

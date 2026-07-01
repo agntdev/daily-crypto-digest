@@ -6,7 +6,18 @@ import { createBot, type BotContext } from "./toolkit/index.js";
 // bot grows. Durable domain data must NOT live here — use the toolkit's
 // persistent storage (see AGENTS.md).
 export interface Session {
-  // example: step?: "awaiting_amount";
+  /** Current flow step for multi-step conversations. */
+  step?:
+    | "onboarding_timezone"
+    | "onboarding_delivery_time"
+    | "onboarding_confirm"
+    | "change_time"
+    | "feedback";
+  /** Temporary data during onboarding. */
+  onboarding_timezone?: string;
+  onboarding_delivery_time?: string;
+  /** Flow timeout: unix ms when the current step expires. */
+  expiresAt?: number;
 }
 
 export type Ctx = BotContext<Session>;
@@ -20,6 +31,20 @@ export type Ctx = BotContext<Session>;
 export async function buildBot(token: string) {
   const bot = createBot<Session>(token, {
     initial: () => ({}),
+  });
+
+  // Flow timeout sweeper — reset idle if a step has been pending >5 minutes
+  bot.use(async (ctx, next) => {
+    const expires = ctx.session.expiresAt;
+    if (expires && Date.now() > expires) {
+      ctx.session.step = undefined;
+      ctx.session.onboarding_timezone = undefined;
+      ctx.session.onboarding_delivery_time = undefined;
+      ctx.session.expiresAt = undefined;
+      // Don't auto-reply — the handler that receives this update will
+      // see step === undefined and decide what to show.
+    }
+    await next();
   });
 
   const dir = new URL("./handlers/", import.meta.url);
