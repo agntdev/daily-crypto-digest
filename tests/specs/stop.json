@@ -57,5 +57,49 @@
         ]
       }
     ]
+  },
+  {
+    "name": "full onboarding then /stop shows confirm for subscribed user",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboarding:start" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "tz:UTC" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "onboard_time:08:00" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "onboarding:confirm" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "/stop" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Are you sure you want to stop receiving daily crypto digests? You can re-subscribe anytime by tapping /start." }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "unsubscribe:yes" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "✅ You've been unsubscribed from the daily digest. No more messages will be sent.\n\nTap /start if you ever want to come back." }
+          }
+        ]
+      }
+    ]
   }
 ]

@@ -27,5 +27,49 @@
         ]
       }
     ]
+  },
+  {
+    "name": "full onboarding then time change works end-to-end",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboarding:start" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "tz:UTC" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "onboard_time:08:00" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "onboarding:confirm" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "/time" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "Your current delivery time is 08:00. Pick a new time for your daily digest:" }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "time:18:00" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "✅ Delivery time updated to 18:00. You'll receive your daily digest at that time." }
+          }
+        ]
+      }
+    ]
   }
 ]

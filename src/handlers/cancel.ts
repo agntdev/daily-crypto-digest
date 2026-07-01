@@ -10,6 +10,7 @@ composer.command("cancel", async (ctx) => {
   ctx.session.step = undefined;
   ctx.session.onboarding_timezone = undefined;
   ctx.session.onboarding_delivery_time = undefined;
+  ctx.session.expiresAt = undefined;
 
   await ctx.reply("Cancelled. Tap /start to open the menu.");
 });

@@ -44,8 +44,9 @@ async function safeSend(
 }
 
 /**
- * Run one delivery tick. Called each minute by the scheduler.
- * Checks if any user's local time matches their delivery_time.
+ * Run one delivery tick. Called every 30s by the scheduler.
+ * Iterates active users and checks if the current time in their timezone matches
+ * their preferred delivery time.
  */
 export async function deliveryTick(
   bot: { api: { sendMessage: (chatId: number, text: string, extra?: Record<string, unknown>) => Promise<unknown> } },
@@ -95,7 +96,7 @@ async function sendDigestToUser(
   if (digests.length === 0) {
     await appendActivityLog(kv, {
       event_type: "delivery_error",
-      timestamp: new Date().toISOString(),
+      timestamp: now().toISOString(),
       user_id: userId,
       details: "No articles available for delivery",
     });
@@ -124,7 +125,7 @@ async function sendDigestToUser(
 
   await appendActivityLog(kv, {
     event_type: "delivery",
-    timestamp: new Date().toISOString(),
+    timestamp: now().toISOString(),
     user_id: userId,
     details: `Delivered ${sent}/${digests.length} articles`,
   });
@@ -132,7 +133,7 @@ async function sendDigestToUser(
   if (sent < digests.length) {
     await appendActivityLog(kv, {
       event_type: "delivery_error",
-      timestamp: new Date().toISOString(),
+      timestamp: now().toISOString(),
       user_id: userId,
       details: `Partial delivery: ${sent}/${digests.length} sent to user ${userId}`,
     });
