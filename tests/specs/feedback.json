@@ -1,0 +1,58 @@
+[
+  {
+    "name": "menu:feedback opens feedback form",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "menu:feedback" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "I'd love to hear from you. What feedback do you have about the digest? Just type your message below."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "feedback callback on digest opens form",
+    "steps": [
+      {
+        "send": { "callback": "feedback" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "I'd love to hear from you. What feedback do you have about the digest? Just type your message below."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "submitting feedback confirms receipt",
+    "steps": [
+      {
+        "send": { "callback": "menu:feedback" },
+        "expect": [{ "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "Great bot, love the summaries!" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Thanks for your feedback — it helps make the digest better for everyone.\n\nTap a button to continue:"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

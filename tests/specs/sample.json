@@ -1,0 +1,58 @@
+[
+  {
+    "name": "/sample without profile shows error",
+    "steps": [
+      {
+        "send": { "text": "/sample" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Set up your subscription first. Tap /start to begin."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "/sample with profile fetches news (no API key → fallback)",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "text": "/sample" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": {
+              "text": "Fetching the latest crypto news…"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:sample fetches news (no API key → no news message)",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "menu:sample" },
+        "expect": [
+          {
+            "method": "editMessageText",
+            "payload": {
+              "text": "Fetching the latest crypto news…"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
