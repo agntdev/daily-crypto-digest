@@ -1,0 +1,17 @@
+[
+  {
+    "name": "related callback shows related articles",
+    "steps": [
+      {
+        "send": { "callback": "related:CoinDesk" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "sendMessage",
+            "payload": { "text": "📚 Finding more articles like that..." }
+          }
+        ]
+      }
+    ]
+  }
+]
