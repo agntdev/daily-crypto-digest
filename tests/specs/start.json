@@ -1,14 +1,27 @@
 [
   {
-    "name": "/start replies with the welcome + main menu",
+    "name": "/start shows timezone prompt for new users",
     "steps": [
       {
         "send": { "text": "/start" },
         "expect": [
           {
             "method": "sendMessage",
-            "payload": { "text": "👋 Welcome! Tap a button below to get started." }
+            "payload": {
+              "text": "👋 Welcome! Let's get you set up.\n\nFirst, what's your timezone? This helps us send the digest at the right local time for you."
+            }
           }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:main callback returns to the welcome menu",
+    "steps": [
+      {
+        "send": { "callback": "menu:main" },
+        "expect": [
+          { "method": "editMessageText", "payload": { "text": "👋 Welcome! Tap a button below to get started." } }
         ]
       }
     ]
