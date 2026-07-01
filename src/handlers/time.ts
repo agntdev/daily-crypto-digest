@@ -1,7 +1,7 @@
 import { Composer } from "grammy";
 import type { Ctx } from "../bot.js";
 import { registerMainMenuItem, inlineButton, inlineKeyboard, menuKeyboard } from "../toolkit/index.js";
-import { getDomainStore, getUserProfile, saveUserProfile } from "../lib/storage.js";
+import { getDomainStore, getUserProfile, saveUserProfile, computeNextScheduledSend, setNextScheduledSend } from "../lib/storage.js";
 import { now } from "../lib/clock.js";
 
 // /time — change delivery time preference
@@ -73,9 +73,6 @@ composer.callbackQuery("change_time", async (ctx) => {
 // ──────────────────────────────────────────────
 // Time selection (shared for both onboarding and change_time flows)
 // ──────────────────────────────────────────────
-// Note: time: callbacks are also handled in start.ts for onboarding.
-// We register a more specific catch here for the change_time step.
-// Actually let's just handle it here for all cases.
 composer.callbackQuery(/^time:/, async (ctx) => {
   await ctx.answerCallbackQuery();
 
@@ -91,8 +88,14 @@ composer.callbackQuery(/^time:/, async (ctx) => {
     return;
   }
 
+  const oldTime = profile.delivery_time;
   profile.delivery_time = time;
-  await saveUserProfile(kv, profile);
+  // Pass oldDeliveryTime so saveUserProfile removes the user from the old index
+  await saveUserProfile(kv, profile, oldTime);
+
+  // Update next scheduled send
+  const nextSend = computeNextScheduledSend(profile.timezone, time);
+  await setNextScheduledSend(kv, ctx.from!.id, nextSend);
 
   ctx.session.step = undefined;
 

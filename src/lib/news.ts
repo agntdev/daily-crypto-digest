@@ -154,19 +154,56 @@ export async function fetchNewsArticles(
 
   // Return static fallback data for environments without API access
   const articles = [...FALLBACK_ARTICLES, ...FALLBACK_ARTICLES_2];
-  // Shuffle slightly to get varied results on each call
   return articles.slice(0, 3);
 }
 
 /**
- * Fetch "more like this" — articles related to a given digest item by topic tags.
- * In a real implementation this would search by tags; for the fallback we return
- * different articles.
+ * Fetch "more like this" — articles related to a given digest item by topic tags
+ * and source name.
+ *
+ * Uses the passed tags and source to find genuinely related articles.
+ * - If tags are provided, filters articles matching any of those tags
+ * - If a source is provided, boosts articles from the same source
+ * - Falls back to returning fresh articles if no match is found
  */
 export async function fetchRelatedArticles(
   _env: Record<string, string | undefined> = process.env,
   _tags: string[] = [],
+  _source?: string,
 ): Promise<NewsArticle[]> {
-  // Try to fetch fresh articles; fall back to alternate static set
-  return fetchNewsArticles(_env);
+  // Fetch fresh articles
+  const articles = await fetchNewsArticles(_env);
+
+  if (_tags.length === 0 && !_source) return articles.slice(0, 2);
+
+  // Score articles by relevance: matching tag = +2, matching source = +1
+  const scored = articles.map((a) => {
+    let score = 0;
+    const lowerSource = _source?.toLowerCase() ?? "";
+    if (_source && a.source_name.toLowerCase().includes(lowerSource)) {
+      score += 1;
+    }
+    for (const tag of _tags) {
+      const lowerTag = tag.toLowerCase();
+      if (
+        a.title.toLowerCase().includes(lowerTag) ||
+        a.description.toLowerCase().includes(lowerTag) ||
+        a.categories.some((c) => c.toLowerCase().includes(lowerTag))
+      ) {
+        score += 2;
+      }
+    }
+    return { article: a, score };
+  });
+
+  // Sort by relevance, take top 2
+  scored.sort((a, b) => b.score - a.score);
+  const results = scored.slice(0, 2);
+
+  // If nothing scored, fall back to fresh articles
+  if (results.every((r) => r.score === 0)) {
+    return articles.slice(0, 2);
+  }
+
+  return results.map((r) => r.article);
 }

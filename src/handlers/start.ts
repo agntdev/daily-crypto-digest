@@ -6,13 +6,7 @@ import {
   inlineKeyboard,
   menuKeyboard,
 } from "../toolkit/index.js";
-import {
-  getDomainStore,
-  getUserProfile,
-  saveUserProfile,
-  type KVStore,
-  type UserProfile,
-} from "../lib/storage.js";
+import { getDomainStore, getUserProfile, saveUserProfile, computeNextScheduledSend, setNextScheduledSend, type KVStore, type UserProfile } from "../lib/storage.js";
 import { now } from "../lib/clock.js";
 
 // The /start handler renders the bot's MAIN MENU for subscribed users, or starts
@@ -165,6 +159,10 @@ composer.callbackQuery("onboarding:confirm", async (ctx) => {
   };
 
   await saveUserProfile(kv, profile);
+
+  // Set next scheduled send
+  const nextSend = computeNextScheduledSend(tz, deliveryTime);
+  await setNextScheduledSend(kv, ctx.from!.id, nextSend);
 
   ctx.session.step = undefined;
   ctx.session.onboarding_timezone = undefined;

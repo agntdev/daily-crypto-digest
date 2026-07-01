@@ -12,6 +12,7 @@ import {
   getSummaryLengthLimit,
   setSummaryLengthLimit,
   bulkUnsubscribeAll,
+  getRecentActivityCounts,
   type KVStore,
 } from "../lib/storage.js";
 
@@ -171,6 +172,51 @@ composer.command("admin_broadcast", async (ctx) => {
 });
 
 // ──────────────────────────────────────────────
+// Admin broadcast send — the actual broadcast command
+// ──────────────────────────────────────────────
+composer.command("admin_broadcast_send", async (ctx) => {
+  const text = ctx.message?.text ?? "";
+  const message = text.replace(/\/admin_broadcast_send(?:\s+|$)/, "").trim();
+  if (!message) {
+    await ctx.reply(
+      "Please include a message to broadcast, e.g.:\n\n" +
+      "`/admin_broadcast_send Hello everyone! New features are coming.`",
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+
+  const kv = getDomainStore();
+  const allIds = await getAllUserIds(kv);
+  let sent = 0;
+  let failed = 0;
+
+  await ctx.reply(`📢 Broadcasting to ${allIds.length} registered users...`);
+
+  for (const uid of allIds) {
+    const profile = await getUserProfile(kv, uid);
+    if (!profile || profile.subscription_status !== "active") continue;
+
+    try {
+      await ctx.api.sendMessage(uid, message);
+      sent++;
+    } catch (err: unknown) {
+      const e = err as { error_code?: number };
+      if (e.error_code !== 403) {
+        console.error(`[broadcast] failed for ${uid}:`, err);
+      }
+      failed++;
+    }
+  }
+
+  await ctx.reply(
+    `📢 Broadcast complete.\n✅ Sent to: ${sent} active subscriber(s)\n` +
+    (failed > 0 ? `⚠️ Failed: ${failed} user(s) (may have blocked the bot)\n` : "") +
+    `Total users processed: ${allIds.length}`,
+  );
+});
+
+// ──────────────────────────────────────────────
 // Admin bulk unsubscribe
 // ──────────────────────────────────────────────
 composer.command("admin_unsubscribe_all", async (ctx) => {
@@ -196,6 +242,7 @@ function escapeHtml(s: string): string {
 
 // ──────────────────────────────────────────────
 // Generate admin report (exported for scheduler use)
+// Includes activity log data as spec'd.
 // ──────────────────────────────────────────────
 export async function generateAdminReport(kv: KVStore): Promise<string> {
   const allIds = await getAllUserIds(kv);
@@ -216,11 +263,19 @@ export async function generateAdminReport(kv: KVStore): Promise<string> {
     .map(([time, count]) => `  ${time}: ${count} subscriber(s)`)
     .join("\n");
 
+  // Activity log stats
+  const counts = await getRecentActivityCounts(kv, 60 * 24); // last 24 hours
+
   return (
     `📊 **Daily Admin Report**\n\n` +
     `👥 Total registered users: ${allIds.length}\n` +
     `✅ Active subscribers: ${active}\n` +
     `⏰ **Delivery time breakdown:**\n${timeBreakdown || "  None"}\n\n` +
+    `📋 **Activity log (all time):**\n` +
+    `  📨 Deliveries: ${counts.deliveries}\n` +
+    `  ❌ Errors: ${counts.errors}\n` +
+    `  💬 Feedback submissions: ${counts.feedbacks}\n` +
+    `  🔔 Admin alerts: ${counts.alerts}\n\n` +
     `_Report generated automatically._`
   );
 }
