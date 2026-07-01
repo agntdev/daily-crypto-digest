@@ -1,0 +1,61 @@
+[
+  {
+    "name": "/stop asks for confirmation when not subscribed",
+    "steps": [
+      {
+        "send": { "text": "/stop" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "You're not currently subscribed." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe button from menu shows confirmation",
+    "steps": [
+      {
+        "send": { "callback": "unsubscribe" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "You're not currently subscribed." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe cancel keeps subscription",
+    "steps": [
+      {
+        "send": { "callback": "unsubscribe:cancel" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "No changes made. Your daily digest is still active." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "unsubscribe confirm gracefully handles no profile",
+    "steps": [
+      {
+        "send": { "callback": "unsubscribe:confirm" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Couldn't find your profile." }
+          }
+        ]
+      }
+    ]
+  }
+]

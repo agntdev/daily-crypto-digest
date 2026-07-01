@@ -1,0 +1,48 @@
+[
+  {
+    "name": "/sample shows sample digest",
+    "steps": [
+      {
+        "send": { "text": "/sample" },
+        "expect": [
+          { "method": "sendMessage" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "digest:sample from menu shows sample digest",
+    "steps": [
+      {
+        "send": { "callback": "digest:sample" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          { "method": "sendMessage" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "digest:show when not subscribed",
+    "steps": [
+      {
+        "send": { "callback": "digest:show" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          { "method": "editMessageText", "payload": { "text": "You're not subscribed yet. Tap /start to set up your daily digest." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "related callback works",
+    "steps": [
+      {
+        "send": { "callback": "related:0" },
+        "expect": [
+          { "method": "answerCallbackQuery" }
+        ]
+      }
+    ]
+  }
+]

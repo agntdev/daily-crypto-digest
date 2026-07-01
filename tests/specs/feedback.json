@@ -1,0 +1,17 @@
+[
+  {
+    "name": "feedback button shows input prompt",
+    "steps": [
+      {
+        "send": { "callback": "feedback" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "💬 What's on your mind? Send me your feedback, suggestions, or report an issue.\n\nType your message below." }
+          }
+        ]
+      }
+    ]
+  }
+]

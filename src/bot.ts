@@ -1,12 +1,16 @@
 import { Composer } from "grammy";
 import { readdirSync } from "node:fs";
 import { createBot, type BotContext } from "./toolkit/index.js";
+import { initStore, resetStore } from "./storage.js";
 
 // The per-chat session shape (ephemeral conversation state only). Extend as the
 // bot grows. Durable domain data must NOT live here — use the toolkit's
 // persistent storage (see AGENTS.md).
 export interface Session {
-  // example: step?: "awaiting_amount";
+  /** Current multi-step flow step. */
+  step?: string;
+  /** Temporary data accumulated during a flow. */
+  data?: Record<string, unknown>;
 }
 
 export type Ctx = BotContext<Session>;
@@ -19,8 +23,13 @@ export type Ctx = BotContext<Session>;
  */
 export async function buildBot(token: string) {
   const bot = createBot<Session>(token, {
-    initial: () => ({}),
+    initial: () => ({ step: "idle" }),
   });
+
+  // Initialize the persistent store (singleton). Uses Redis when REDIS_URL is set,
+  // in-memory otherwise (dev/test). Reset first so each fresh bot gets fresh state.
+  resetStore();
+  initStore();
 
   const dir = new URL("./handlers/", import.meta.url);
   let files: string[] = [];

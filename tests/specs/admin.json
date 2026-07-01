@@ -1,0 +1,16 @@
+[
+  {
+    "name": "/admin sets the first caller as admin",
+    "steps": [
+      {
+        "send": { "text": "/admin" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "🔐 You're now set as the admin. This chat will receive daily reports and error alerts." }
+          }
+        ]
+      }
+    ]
+  }
+]
