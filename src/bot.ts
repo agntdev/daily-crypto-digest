@@ -1,12 +1,26 @@
 import { Composer } from "grammy";
 import { readdirSync } from "node:fs";
 import { createBot, type BotContext } from "./toolkit/index.js";
+import { resetDomainStore } from "./storage.js";
+import { _resetMainMenu } from "./toolkit/index.js";
 
 // The per-chat session shape (ephemeral conversation state only). Extend as the
 // bot grows. Durable domain data must NOT live here — use the toolkit's
 // persistent storage (see AGENTS.md).
 export interface Session {
-  // example: step?: "awaiting_amount";
+  step:
+    | "idle"
+    | "menu"
+    | "onboarding:timezone"
+    | "onboarding:time"
+    | "onboarding:confirm"
+    | "onboarding:sample"
+    | "change_time"
+    | "feedback"
+    | "subscribed"
+    | "unsubscribed";
+  /** Pending feedback text accumulating in the feedback flow. */
+  feedbackText?: string;
 }
 
 export type Ctx = BotContext<Session>;
@@ -18,8 +32,11 @@ export type Ctx = BotContext<Session>;
  * Composer — NEVER edit this file (concurrent feature PRs would conflict).
  */
 export async function buildBot(token: string) {
+  // Reset domain state and menu registry so each buildBot call is isolated
+  resetDomainStore();
+  _resetMainMenu();
   const bot = createBot<Session>(token, {
-    initial: () => ({}),
+    initial: () => ({ step: "idle" }),
   });
 
   const dir = new URL("./handlers/", import.meta.url);

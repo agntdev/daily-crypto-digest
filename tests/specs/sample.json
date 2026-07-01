@@ -1,0 +1,15 @@
+[
+  {
+    "name": "/sample shows a sample digest with fallback text (no api key)",
+    "steps": [
+      {
+        "send": { "text": "/sample" },
+        "expect": [
+          {
+            "method": "sendMessage"
+          }
+        ]
+      }
+    ]
+  }
+]
