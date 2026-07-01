@@ -1,0 +1,31 @@
+[
+  {
+    "name": "/time requires subscription first",
+    "steps": [
+      {
+        "send": { "text": "/time" },
+        "expect": [
+          {
+            "method": "sendMessage",
+            "payload": { "text": "You're not subscribed yet. Tap /start to set up first." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "change time from menu requires subscription",
+    "steps": [
+      {
+        "send": { "callback": "time:change" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "You're not subscribed yet. Tap /start to set up first." }
+          }
+        ]
+      }
+    ]
+  }
+]

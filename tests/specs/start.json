@@ -1,14 +1,110 @@
 [
   {
-    "name": "/start replies with the welcome + main menu",
+    "name": "/start shows onboarding for new users",
     "steps": [
       {
         "send": { "text": "/start" },
         "expect": [
           {
             "method": "sendMessage",
-            "payload": { "text": "👋 Welcome! Tap a button below to get started." }
+            "payload": { "text": "Let’s get you set up.\n\nWhat’s your timezone? Tap one below or type a city (e.g. “Berlin”)." }
           }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "onboarding timezone selection via button",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "tz:Europe/Berlin" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          { "method": "editMessageText", "payload": { "text": "Got it, timezone set to Europe/Berlin.\n\nWhat time would you like your daily digest?\n\nType a 24-hour time (e.g. “09:00”)." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "onboarding time input confirms subscription",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "tz:Europe/Berlin" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "09:00" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "Here’s your subscription:\n\nTimezone: Europe/Berlin\nDelivery time: 09:00\n\nShall I start sending your daily digest?" } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "onboarding confirmation completes",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "tz:UTC" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "14:30" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboard:confirm" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          { "method": "editMessageText", "payload": { "text": "You’re all set! ✅\n\nYou’ll receive your first digest at 14:30 UTC.\nTap /start anytime to manage your subscription." } },
+          { "method": "sendMessage" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "onboarding restart goes back to timezone",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "tz:UTC" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "text": "09:00" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboard:restart" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          { "method": "editMessageText", "payload": { "text": "Let’s get you set up.\n\nWhat’s your timezone? Tap one below or type a city (e.g. “Berlin”)." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:main shows welcome and menu from any view",
+    "steps": [
+      {
+        "send": { "callback": "menu:main" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          { "method": "editMessageText", "payload": { "text": "👋 Welcome to your Daily Crypto Digest.\n\nGet 1–3 curated crypto news summaries every day at your chosen time." } }
         ]
       }
     ]
