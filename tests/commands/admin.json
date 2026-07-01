@@ -1,1 +1,1 @@
-["/admin", "/help"]
+["/admin", "/admin_setup", "/admin_report", "/admin_users", "/admin_sources", "/admin_sources_set", "/admin_summary_limit", "/admin_summary_limit_set", "/admin_broadcast", "/admin_broadcast_send", "/admin_unsubscribe_all", "/admin_unsubscribe_all_confirm", "/help"]

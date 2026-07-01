@@ -13,6 +13,7 @@ import {
   type KVStore,
   type UserProfile,
 } from "../lib/storage.js";
+import { now } from "../lib/clock.js";
 
 // The /start handler renders the bot's MAIN MENU for subscribed users, or starts
 // the onboarding wizard for new users.
@@ -83,7 +84,7 @@ composer.command("start", async (ctx) => {
 composer.callbackQuery("onboarding:start", async (ctx) => {
   await ctx.answerCallbackQuery();
   ctx.session.step = "onboarding_timezone";
-  ctx.session.expiresAt = Date.now() + 5 * 60 * 1000;
+  ctx.session.expiresAt = now().getTime() + 5 * 60 * 1000;
   await ctx.editMessageText(ONBOARDING_TIMEZONE, {
     reply_markup: menuKeyboard(
       COMMON_TIMEZONES.map((t) => ({ text: t.label, data: t.data })),

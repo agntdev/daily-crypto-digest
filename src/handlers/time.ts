@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 import type { Ctx } from "../bot.js";
 import { registerMainMenuItem, inlineButton, inlineKeyboard, menuKeyboard } from "../toolkit/index.js";
 import { getDomainStore, getUserProfile, saveUserProfile } from "../lib/storage.js";
+import { now } from "../lib/clock.js";
 
 // /time — change delivery time preference
 // Reachable as a command or a button on the main menu.
@@ -30,7 +31,7 @@ composer.command("time", async (ctx) => {
   }
 
   ctx.session.step = "change_time";
-  ctx.session.expiresAt = Date.now() + 5 * 60 * 1000;
+  ctx.session.expiresAt = now().getTime() + 5 * 60 * 1000;
 
   const currentTime = profile.delivery_time || "not set";
   await ctx.reply(

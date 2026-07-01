@@ -54,5 +54,42 @@
         ]
       }
     ]
+  },
+  {
+    "name": "full onboarding confirm shows confirm page then sample digest",
+    "steps": [
+      {
+        "send": { "text": "/start" },
+        "expect": [{ "method": "sendMessage" }]
+      },
+      {
+        "send": { "callback": "onboarding:start" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "tz:UTC" },
+        "expect": [{ "method": "answerCallbackQuery" }, { "method": "editMessageText" }]
+      },
+      {
+        "send": { "callback": "onboard_time:08:00" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "Here's your setup:\n\n🌍 Timezone: 🌐 UTC\n⏰ Daily delivery: 08:00\n\nTap Confirm to start receiving your daily crypto digest." }
+          }
+        ]
+      },
+      {
+        "send": { "callback": "onboarding:confirm" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "✅ You're all set! You'll receive your first digest at the chosen time.\n\nHere's a preview of what to expect:" }
+          }
+        ]
+      }
+    ]
   }
 ]

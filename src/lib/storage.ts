@@ -14,6 +14,7 @@
  */
 
 import { createRequire } from "node:module";
+import { now } from "./clock.js";
 
 // ──────────────────────────────────────────────
 // Simple key-value store interface (no session flavors)
@@ -124,6 +125,8 @@ const k = {
   userDeliveries: (telegramId: number) => `${PREFIX}idx:deliveries:${telegramId}`,
   adminChat: () => `${PREFIX}admin:chat`,
   adminErrors: () => `${PREFIX}idx:admin_errors`,
+  sourcePriorities: () => `${PREFIX}admin:source_priorities`,
+  summaryLengthLimit: () => `${PREFIX}admin:summary_length`,
 } as const;
 
 // ──────────────────────────────────────────────
@@ -257,7 +260,7 @@ let _logCounter = 0;
 
 export async function appendActivityLog(kv: KVStore, entry: ActivityLogEntry): Promise<void> {
   _logCounter++;
-  const eventId = `${Date.now()}-${_logCounter}`;
+  const eventId = `${now().getTime()}-${_logCounter}`;
   await kv.set(k.activityLog(eventId), JSON.stringify(entry));
 
   // Maintain the admin errors index (only error-type entries)
@@ -294,9 +297,105 @@ export async function setAdminChatId(kv: KVStore, chatId: number): Promise<void>
 }
 
 // ──────────────────────────────────────────────
-// Time helper
+// Source priorities (owner-controlled)
+// ──────────────────────────────────────────────
+
+export async function getSourcePriorities(kv: KVStore): Promise<string[]> {
+  const raw = await kv.get(k.sourcePriorities());
+  return raw ? (JSON.parse(raw) as string[]) : [];
+}
+
+export async function setSourcePriorities(kv: KVStore, sources: string[]): Promise<void> {
+  await kv.set(k.sourcePriorities(), JSON.stringify(sources));
+}
+
+// ──────────────────────────────────────────────
+// Summary length limit (owner-controlled, in chars)
+// ──────────────────────────────────────────────
+
+export async function getSummaryLengthLimit(kv: KVStore): Promise<number> {
+  const raw = await kv.get(k.summaryLengthLimit());
+  return raw ? Number(raw) : 300; // default 300 chars
+}
+
+export async function setSummaryLengthLimit(kv: KVStore, limit: number): Promise<void> {
+  await kv.set(k.summaryLengthLimit(), String(limit));
+}
+
+// ──────────────────────────────────────────────
+// Anonymize user data (privacy — runs on inactive users after 90 days)
+// ──────────────────────────────────────────────
+
+/**
+ * Anonymize a user's profile: replace display_name with an anonymized string,
+ * mark subscription as unsubscribed, and clear delivery preferences.
+ * Returns the updated profile or null if the user doesn't exist.
+ */
+export async function anonymizeUser(kv: KVStore, telegramId: number): Promise<UserProfile | null> {
+  const profile = await getUserProfile(kv, telegramId);
+  if (!profile) return null;
+
+  profile.display_name = `anon_${telegramId}`;
+  profile.subscription_status = "unsubscribed";
+  profile.timezone = "UTC";
+  profile.delivery_time = "09:00";
+  profile.updated_at = nowISO();
+
+  // Remove from delivery schedule index
+  const tRaw = await kv.get(k.scheduledUsers(profile.delivery_time));
+  if (tRaw) {
+    const schedIds: number[] = JSON.parse(tRaw);
+    const filtered = schedIds.filter((id) => id !== telegramId);
+    if (filtered.length > 0) {
+      await kv.set(k.scheduledUsers(profile.delivery_time), JSON.stringify(filtered));
+    } else {
+      await kv.del(k.scheduledUsers(profile.delivery_time));
+    }
+  }
+
+  await kv.set(k.userProfile(telegramId), JSON.stringify(profile));
+  return profile;
+}
+
+/**
+ * Bulk unsubscribe all users. Used by the owner to manage subscriptions.
+ * Returns the number of users affected.
+ */
+export async function bulkUnsubscribeAll(kv: KVStore): Promise<number> {
+  const allIds = await getAllUserIds(kv);
+  let count = 0;
+  for (const id of allIds) {
+    const profile = await getUserProfile(kv, id);
+    if (profile && profile.subscription_status === "active") {
+      profile.subscription_status = "unsubscribed";
+      profile.updated_at = nowISO();
+      await kv.set(k.userProfile(id), JSON.stringify(profile));
+      count++;
+    }
+  }
+  // Clear all schedule indexes
+  for (const hhmm of ["08:00", "09:00", "12:00", "18:00", "20:00"]) {
+    const raw = await kv.get(k.scheduledUsers(hhmm));
+    if (raw) {
+      const ids: number[] = JSON.parse(raw);
+      const kept = ids.filter((id) => {
+        // Keep users that are NOT in the allUsers index (shouldn't happen, but safe)
+        return false;
+      });
+      if (kept.length > 0) {
+        await kv.set(k.scheduledUsers(hhmm), JSON.stringify(kept));
+      } else {
+        await kv.del(k.scheduledUsers(hhmm));
+      }
+    }
+  }
+  return count;
+}
+
+// ──────────────────────────────────────────────
+// Time helper (uses injectable clock)
 // ──────────────────────────────────────────────
 
 function nowISO(): string {
-  return new Date().toISOString();
+  return now().toISOString();
 }

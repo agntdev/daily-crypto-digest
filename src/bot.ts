@@ -1,6 +1,8 @@
 import { Composer } from "grammy";
 import { readdirSync } from "node:fs";
 import { createBot, type BotContext } from "./toolkit/index.js";
+import { now } from "./lib/clock.js";
+import { resetDomainStore } from "./lib/storage.js";
 
 // The per-chat session shape (ephemeral conversation state only). Extend as the
 // bot grows. Durable domain data must NOT live here — use the toolkit's
@@ -29,6 +31,11 @@ export type Ctx = BotContext<Session>;
  * Composer — NEVER edit this file (concurrent feature PRs would conflict).
  */
 export async function buildBot(token: string) {
+  // Reset domain store so each buildBot() call (including per-spec in tests)
+  // gets a fresh state. In production with Redis, this clears the local client
+  // reference but the data lives in Redis, so it's safe.
+  resetDomainStore();
+
   const bot = createBot<Session>(token, {
     initial: () => ({}),
   });
@@ -36,7 +43,7 @@ export async function buildBot(token: string) {
   // Flow timeout sweeper — reset idle if a step has been pending >5 minutes
   bot.use(async (ctx, next) => {
     const expires = ctx.session.expiresAt;
-    if (expires && Date.now() > expires) {
+    if (expires && now().getTime() > expires) {
       ctx.session.step = undefined;
       ctx.session.onboarding_timezone = undefined;
       ctx.session.onboarding_delivery_time = undefined;

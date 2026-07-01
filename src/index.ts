@@ -32,11 +32,21 @@ async function main() {
   }, SCHEDULE_INTERVAL_MS);
   scheduleTimer.unref();
 
-  // Send daily admin report at startup (simulated daily cron)
+  // Daily admin report — fires roughly every 24h after bot starts
+  const DAILY_REPORT_MS = 24 * 60 * 60 * 1000;
   const kv = getDomainStore();
+  const reportTimer = setInterval(async () => {
+    try {
+      await sendAdminReport(bot, kv);
+    } catch {
+      // Non-fatal
+    }
+  }, DAILY_REPORT_MS);
+  reportTimer.unref();
+
+  // Send initial admin report at startup (and log startup event)
   const adminChatId = await getAdminChatId(kv);
   if (adminChatId) {
-    // Generate and send an initial report on startup
     try {
       await sendAdminReport(bot, kv);
     } catch {

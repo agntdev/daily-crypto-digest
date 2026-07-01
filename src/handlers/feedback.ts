@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 import type { Ctx } from "../bot.js";
 import { registerMainMenuItem, inlineButton, inlineKeyboard } from "../toolkit/index.js";
 import { getDomainStore, getUserProfile, appendActivityLog } from "../lib/storage.js";
+import { now } from "../lib/clock.js";
 
 // Feedback — opens a feedback form in chat. Users type their feedback as a
 // text message, and the bot acknowledges it (storing it for admin review).
@@ -59,7 +60,7 @@ composer.on("message:text", async (ctx, next) => {
   const kv = getDomainStore();
   await appendActivityLog(kv, {
     event_type: "feedback",
-    timestamp: new Date().toISOString(),
+    timestamp: now().toISOString(),
     user_id: ctx.from!.id,
     details: feedbackText,
   });

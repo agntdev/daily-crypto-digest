@@ -40,5 +40,31 @@
         ]
       }
     ]
+  },
+  {
+    "name": "/admin_report generates report",
+    "steps": [
+      {
+        "send": { "text": "/admin_report" },
+        "expect": [
+          { "method": "sendMessage", "payload": { "text": "📊 Generating delivery stats report..." } }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "menu:main back to menu button works",
+    "steps": [
+      {
+        "send": { "callback": "menu:main" },
+        "expect": [
+          { "method": "answerCallbackQuery" },
+          {
+            "method": "editMessageText",
+            "payload": { "text": "👋 Welcome! This bot sends you 1–3 curated crypto news summaries each day at your chosen time." }
+          }
+        ]
+      }
+    ]
   }
 ]
